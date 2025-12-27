@@ -47,6 +47,13 @@ docs = [
     "griffe>=0.48.0"
 ]
 
+# https://docs.deepmodeling.com/projects/deepmd/en/stable/development/create-a-model-pt.html
+[project.entry-points."deepmd.pt"]
+modifier_dipole_charge = "torch_dplr.dipole_charge:DipoleChargeModifier"
+
+# [project.entry-points."deepmd"]
+# modifier_dipole_charge_args = "torch_dplr.argcheck:modifier_dipole_charge_args"
+
 [tool.setuptools_scm]
 write_to = "torch_dplr/_version.py"
 version_scheme = "release-branch-semver"
@@ -63,4 +70,3 @@ content-type = "text/markdown"
 
 [[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
 path = "README.md"
-
