@@ -190,12 +190,12 @@ class DipoleChargeModifier(BaseModifier):
                     aparam=aparam[ii].reshape(1, -1) if aparam is not None else None,
                     atomic_weight=ext_f_mapped[ii].reshape(1, -1),
                 )
-                corr_f.append(output["force"].reshape(1, -1, natoms, 3))
-                corr_v.append(output["virial"].reshape(1, -1, 9))
-            # nframes, nout, natoms, 3
+                corr_f.append(-output["force"])
+                corr_v.append(-output["virial"].reshape(1, -1, 9))
+            # nframes, natoms, nout, 3
             corr_f = torch.concat(corr_f, dim=0)
             # nframes, natoms, 3
-            corr_f = torch.sum(corr_f, dim=1)
+            corr_f = torch.sum(corr_f, dim=2)
             # nframes, nout, 9
             corr_v = torch.concat(corr_v, dim=0)
             # nframe, 9
