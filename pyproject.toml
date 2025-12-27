@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torch_dplr"
+version = "1.1.0a"
+description = "DPLR in PyTorch backend"
+readme = "README.md"
+license = { file = ".license-header.txt" }
+dependencies = [
+    "deepmd",
+    "torch>=2.1.0",
+    "torchopt==0.7.3",
+    "numpy>=1.20.0, <2.0",
+    "scipy>=1.6.0",
+    "ase",
+]
+[project.urls]
+Homepage = "https://github.com/ChiahsinChu/torch-dplr"
+
+[project.optional-dependencies]
+torch_admp = [
+    "torch_admp @ git+https://github.com/ChiahsinChu/torch_admp.git@devel",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.20.0",
+    "mkdocs-glightbox>=0.3.0",
+    "pymdown-extensions>=10.0.0",
+    "mkdocs-git-revision-date-localized-plugin>=1.2.0",
+    "mkdocs-awesome-pages-plugin>=2.8.0",
+    "mkdocs-gen-files>=0.5.0",
+    "griffe>=0.48.0"
+]
+
+[tool.setuptools]
+packages = ["torch_dplr"]
