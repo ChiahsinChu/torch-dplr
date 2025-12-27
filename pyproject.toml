@@ -1,17 +1,20 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "setuptools_scm[toml]>=6.2",
+    "hatch-fancy-pypi-readme",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "torch_dplr"
-version = "1.1.0a"
+dynamic = ["version", "readme"]
 description = "DPLR in PyTorch backend"
-readme = "README.md"
 license = { file = ".license-header.txt" }
 dependencies = [
-    "deepmd",
     "torch>=2.1.0",
     "torchopt==0.7.3",
     "numpy>=1.20.0, <2.0",
@@ -23,7 +26,10 @@ Homepage = "https://github.com/ChiahsinChu/torch-dplr"
 
 [project.optional-dependencies]
 torch_admp = [
-    "torch_admp @ git+https://github.com/ChiahsinChu/torch_admp.git@devel",
+    "torch_admp @ git+https://github.com/ChiahsinChu/torch_admp.git@v1.1.0a",
+]
+deepmd-kit = [
+    "deepmd-kit>=3.1.2",
 ]
 test = [
     "pytest",
@@ -41,5 +47,20 @@ docs = [
     "griffe>=0.48.0"
 ]
 
-[tool.setuptools]
-packages = ["torch_dplr"]
+[tool.setuptools_scm]
+write_to = "torch_dplr/_version.py"
+version_scheme = "release-branch-semver"
+local_scheme = "node-and-date"
+
+[tool.setuptools.packages.find]
+include = ["torch_dplr*"]
+
+[tool.setuptools.dynamic]
+readme = {file = "README.md", content-type = "text/markdown"}
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
