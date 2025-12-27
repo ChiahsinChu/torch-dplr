@@ -2,5 +2,6 @@
 """torch-dplr: DPLR in PyTorch backend."""
 
 from ._version import __version__
+from .dipole_charge import DipoleChargeModifier
 
-__all__ = ["__version__"]
+__all__ = ["__version__", "DipoleChargeModifier"]

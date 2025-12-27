@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 if sys.version_info >= (3, 11):
-    import tomllib
+    pass
 else:
-    import tomli as tomllib
+    pass
 
 __all__ = ["dynamic_metadata"]
 
@@ -21,11 +21,11 @@ def dynamic_metadata(
     settings: dict[str, object] | None = None,
 ):
     """Get dynamic metadata for torch-dplr.
-    
+
     Args:
         field: The metadata field to get
         settings: Additional settings
-        
+
     Returns:
         The metadata value
     """
