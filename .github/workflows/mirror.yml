@@ -25,5 +25,5 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         with:
-          source-repo: "git@github.com:ChiahsinChu/torch-dplr.git"
-          destination-repo: "git@gitee.com:chiahsinchu/torch-dplr.git"
+          source-repo: "git@github.com:${{ github.repository }}.git"
+          destination-repo: "git@gitee.com:${{ github.repository }}.git"

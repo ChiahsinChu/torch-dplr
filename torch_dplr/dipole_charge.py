@@ -111,11 +111,11 @@ class DipoleChargeModifier(BaseModifier):
         Parameters
         ----------
         coord : torch.Tensor
-            The coordinates of atoms with shape (nframes, natoms * 3)
+            The coordinates of atoms with shape (nframes, natoms, 3)
         atype : torch.Tensor
-            The atom types with shape (natoms,)
+            The atom types with shape (nframes, natoms)
         box : torch.Tensor | None, optional
-            The simulation box with shape (nframes, 9), by default None
+            The simulation box with shape (nframes, 3, 3), by default None
             Note: This modifier can only be applied for periodic systems
         fparam : torch.Tensor | None, optional
             Frame parameters with shape (nframes, nfp), by default None
@@ -139,12 +139,12 @@ class DipoleChargeModifier(BaseModifier):
         else:
             modifier_pred = {}
             nframes = coord.shape[0]
-            natoms = coord.shape[1] // 3
+            natoms = coord.shape[1]
 
             extended_coord, extended_charge, atomic_dipole = self.extend_system(
-                coord,
+                coord.reshape(nframes, natoms * 3),
                 atype,
-                box,
+                box.reshape(nframes, 9),
                 fparam,
                 aparam,
             )
@@ -231,7 +231,7 @@ class DipoleChargeModifier(BaseModifier):
         coord : torch.Tensor
             The coordinates of atoms with shape (nframes, natoms * 3)
         atype : torch.Tensor
-            The atom types with shape (natoms,)
+            The atom types with shape (nframes, natoms)
         box : torch.Tensor
             The simulation box with shape (nframes, 9)
         fparam : torch.Tensor | None, optional
@@ -293,7 +293,7 @@ class DipoleChargeModifier(BaseModifier):
         coord : torch.Tensor
             The coordinates of atoms with shape (nframes, natoms * 3)
         atype : torch.Tensor
-            The atom types with shape (natoms,)
+            The atom types with shape (nframes, natoms)
         box : torch.Tensor
             The simulation box with shape (nframes, 9)
         fparam : torch.Tensor | None, optional
@@ -320,7 +320,7 @@ class DipoleChargeModifier(BaseModifier):
         for ii in range(nframes):
             dipole_batch = self.model(
                 coord=coord[ii].reshape(1, -1),
-                atype=atype.reshape(1, -1),
+                atype=atype[ii].reshape(1, -1),
                 box=box[ii].reshape(1, -1),
                 do_atomic_virial=False,
                 fparam=fparam[ii].reshape(1, -1) if fparam is not None else None,
