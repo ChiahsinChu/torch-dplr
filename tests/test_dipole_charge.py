@@ -19,10 +19,10 @@ DTYPE = torch.float64
 
 def ref_data():
     all_box = np.load(
-        str(Path(__file__).parent / "data/dipole/data/atomic_system/set.000/box.npy")
+        str(Path(__file__).parent / "data/energy/data/data_0/set.000/box.npy")
     )
     all_coord = np.load(
-        str(Path(__file__).parent / "data/dipole/data/atomic_system/set.000/coord.npy")
+        str(Path(__file__).parent / "data/energy/data/data_0/set.000/coord.npy")
     )
     nframe = len(all_box)
     rng = np.random.default_rng(SEED)
@@ -31,7 +31,7 @@ def ref_data():
     coord = all_coord[selected_id].reshape(1, -1)
     box = all_box[selected_id].reshape(1, -1)
     atype = np.loadtxt(
-        str(Path(__file__).parent / "data/dipole/data/atomic_system/type.raw"),
+        str(Path(__file__).parent / "data/energy/data/data_0/type.raw"),
         dtype=int,
     ).reshape(1, -1)
     return coord, box, atype

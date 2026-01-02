@@ -87,9 +87,6 @@ If you use torch-dplr in your research, please cite it as:
   title        = {DPLR in PyTorch backend},
   month        = dec,
   year         = 2025,
-  publisher    = {Zenodo},
-  version      = {v0.1.0},
-  doi          = {10.5281/zenodo.10582233},
   url          = {https://github.com/ChiahsinChu/torch-dplr}
 }
 ```
