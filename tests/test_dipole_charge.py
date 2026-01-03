@@ -7,9 +7,10 @@ from pathlib import Path
 import numpy as np
 import torch
 from deepmd.entrypoints.convert_backend import convert_backend
-from deepmd.pt.entrypoints.main import freeze, get_trainer
+from deepmd.pt.entrypoints.main import get_trainer
 from deepmd.pt.utils.utils import to_numpy_array, to_torch_tensor
 from deepmd.tf.modifier import DipoleChargeModifier as TFDipoleChargeModifier
+from deepmd.tf.utils.convert import convert_pbtxt_to_pb
 
 from torch_dplr import DipoleChargeModifier as PTDipoleChargeModifier
 
@@ -42,31 +43,16 @@ class TestDipoleChargeModifier(unittest.TestCase):
         # setup parameter
         # numerical consistency can only be achieved with high prec
         self.ewald_h = 0.1
-        self.ewald_beta = 1.0
+        self.ewald_beta = 0.5
         self.model_charge_map = [-8.0]
         self.sys_charge_map = [6.0, 1.0]
 
-        # train dipole model
-        input_json = str(Path(__file__).parent / "data/dipole/torch_input.json")
-        with open(input_json, encoding="utf-8") as f:
-            config = json.load(f)
-        config["training"]["save_freq"] = 20
-        config["learning_rate"]["start_lr"] = 1.0
-        config["learning_rate"]["stop_lr"] = 1.0
-        config["training"]["training_data"]["systems"] = str(
-            Path(__file__).parent / "data/dipole/data"
+        # Convert pbtxt model to pb model
+        convert_pbtxt_to_pb(
+            str(Path(__file__).parent / "data/dipole/frozen_model.pbtxt"), "dw_model.pb"
         )
-        # training step cannot be to small for a stable model
-        config["training"]["numb_steps"] = 100
-
-        trainer = get_trainer(config)
-        trainer.run()
-        freeze(
-            model="model.ckpt.pt",
-            output="dw_model.pth",
-        )
-        # Convert pth model to pb model
-        convert_backend(INPUT="dw_model.pth", OUTPUT="dw_model.pb")
+        # Convert pb model to pth model
+        convert_backend(INPUT="dw_model.pb", OUTPUT="dw_model.pth")
 
         self.dm_pt = PTDipoleChargeModifier(
             "dw_model.pth",
@@ -82,6 +68,7 @@ class TestDipoleChargeModifier(unittest.TestCase):
             self.ewald_h,
             self.ewald_beta,
         )
+        print(self.dm_tf.get_sel_type())
 
     def test_jit(self):
         torch.jit.script(self.dm_pt)
@@ -101,7 +88,7 @@ class TestDipoleChargeModifier(unittest.TestCase):
         e, f, v = self.dm_tf.eval(
             coord=coord,
             box=box,
-            atype=atype,
+            atype=atype.reshape(-1),
         )
 
         np.testing.assert_allclose(

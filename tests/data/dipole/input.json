@@ -1,23 +1,40 @@
 {
   "_comment1": " model parameters",
   "model": {
-    "type_map": ["O", "H"],
-    "atom_exclude_types": [1],
+    "type_map": [
+      "O",
+      "H"
+    ],
     "descriptor": {
       "type": "se_e2_a",
-      "sel": [46, 92],
+      "sel": [
+        46,
+        92
+      ],
       "rcut_smth": 0.5,
-      "rcut": 4.0,
-      "neuron": [25, 50, 100],
+      "rcut": 4.00,
+      "neuron": [
+        25,
+        50,
+        100
+      ],
       "resnet_dt": false,
-      "axis_neuron": 16,
+      "axis_neuron": 6,
       "type_one_side": true,
+      "precision": "float64",
       "seed": 1,
-      "_comment": " that's all"
+      "_comment2": " that's all"
     },
     "fitting_net": {
       "type": "dipole",
-      "neuron": [100, 100, 100],
+      "sel_type": [
+        0
+      ],
+      "neuron": [
+        100,
+        100,
+        100
+      ],
       "resnet_dt": true,
       "precision": "float64",
       "seed": 1,
@@ -39,12 +56,17 @@
   },
   "_comment7": " traing controls",
   "training": {
-    "numb_steps": 10,
     "training_data": {
-      "systems": "data/",
+      "systems": "./data/",
       "batch_size": "auto",
       "_comment8": "that's all"
-    }
+    },
+    "numb_steps": 1000,
+    "seed": 10,
+    "disp_file": "lcurve.out",
+    "disp_freq": 100,
+    "save_freq": 1000,
+    "_comment10": "that's all"
   },
   "_comment11": "that's all"
 }
