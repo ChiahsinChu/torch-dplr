@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from deepmd.entrypoints.convert_backend import convert_backend
 from deepmd.pt.entrypoints.main import get_trainer
+from deepmd.pt.utils import env
 from deepmd.pt.utils.utils import to_numpy_array, to_torch_tensor
 from deepmd.tf.modifier import DipoleChargeModifier as TFDipoleChargeModifier
 from deepmd.tf.utils.convert import convert_pbtxt_to_pb
@@ -98,6 +99,57 @@ class TestDipoleChargeModifier(unittest.TestCase):
         )
         np.testing.assert_allclose(
             to_numpy_array(dm_pred["virial"]).reshape(-1), v.reshape(-1), rtol=1e-4
+        )
+
+    def test_serialize(self):
+        """Test the serialize method of DipoleChargeModifier."""
+        coord, box, atype = ref_data()
+        # consistent with the input shape from BaseModifier.modify_data
+        t_coord = to_torch_tensor(coord).to(DTYPE).reshape(1, -1, 3)
+        t_box = to_torch_tensor(box).to(DTYPE).reshape(1, 3, 3)
+        t_atype = to_torch_tensor(atype).to(torch.long)
+
+        dm0 = self.dm_pt.to(env.DEVICE)
+        dm1 = PTDipoleChargeModifier.deserialize(dm0.serialize()).to(env.DEVICE)
+
+        ret0 = dm0(
+            coord=t_coord,
+            atype=t_atype,
+            box=t_box,
+        )
+        ret1 = dm1(
+            coord=t_coord,
+            atype=t_atype,
+            box=t_box,
+        )
+
+        np.testing.assert_allclose(
+            to_numpy_array(ret0["energy"]), to_numpy_array(ret1["energy"])
+        )
+        np.testing.assert_allclose(
+            to_numpy_array(ret0["force"]), to_numpy_array(ret1["force"])
+        )
+        np.testing.assert_allclose(
+            to_numpy_array(ret0["virial"]), to_numpy_array(ret1["virial"])
+        )
+
+    def test_box_none_warning(self):
+        """Test that a RuntimeWarning is raised when box is None."""
+        coord, box, atype = ref_data()
+        # consistent with the input shape from BaseModifier.modify_data
+        t_coord = to_torch_tensor(coord).to(DTYPE).reshape(1, -1, 3)
+        t_atype = to_torch_tensor(atype).to(torch.long)
+
+        with self.assertRaises(RuntimeWarning) as context:
+            self.dm_pt(
+                coord=t_coord,
+                atype=t_atype,
+                box=None,  # Pass None to trigger the warning
+            )
+
+        self.assertIn(
+            "dipole_charge data modifier can only be applied for periodic systems",
+            str(context.exception),
         )
 
     def test_train(self):

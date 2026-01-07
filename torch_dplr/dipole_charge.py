@@ -49,6 +49,8 @@ class DipoleChargeModifier(BaseModifier):
         self.sel_type = to_torch_tensor(np.array(sel_type))
         self.model_charge_map = to_torch_tensor(np.array(model_charge_map))
         self.sys_charge_map = to_torch_tensor(np.array(sys_charge_map))
+        self._model_charge_map = model_charge_map
+        self._sys_charge_map = sys_charge_map
 
         # init ewald recp
         self.ewald_h = ewald_h
@@ -78,8 +80,8 @@ class DipoleChargeModifier(BaseModifier):
             "type": self.modifier_type,
             "@version": 3,
             "model_name": self.model_name,
-            "model_charge_map": self.model_charge_map,
-            "sys_charge_map": self.sys_charge_map,
+            "model_charge_map": self._model_charge_map,
+            "sys_charge_map": self._sys_charge_map,
             "ewald_h": self.ewald_h,
             "ewald_beta": self.ewald_beta,
         }
@@ -302,36 +304,6 @@ class DipoleChargeModifier(BaseModifier):
         wfcc_coord = wfcc_coord.reshape(nframes, -1)
         all_coord = torch.cat((coord, wfcc_coord), dim=1)
         return all_coord
-
-    def er_eval(
-        self,
-        _coord: torch.Tensor,
-        _box: torch.Tensor,
-        _charge: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        box = torch.reshape(_box, (3, 3))
-        box.requires_grad_(True)
-        frac_positions = torch.matmul(
-            _coord.reshape(-1, 3),
-            torch.linalg.inv(box),
-        )
-        detached_frac_positions = frac_positions.detach()
-        positions = torch.matmul(detached_frac_positions, box)
-        charges = torch.reshape(_charge, (-1,))
-
-        self.er(
-            positions,
-            box,
-            self.placeholder_pairs,
-            self.placeholder_ds,
-            self.placeholder_buffer_scales,
-            {"charge": charges},
-        )
-        e = self.er.reciprocal_energy
-        f = -calc_grads(e, positions)
-        v = calc_grads(e, box)
-        v = -torch.matmul(v.transpose(1, 0), box)
-        return e, f, v
 
 
 @torch.jit.export
