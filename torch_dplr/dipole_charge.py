@@ -59,13 +59,6 @@ class DipoleChargeModifier(BaseModifier):
             kappa=ewald_beta,
             spacing=ewald_h,
         )
-
-        # t_box = to_torch_tensor(box)
-        # t_box.requires_grad_(True)
-        # frac_positions = positions @ np.linalg.inv(box)
-        # t_positions = torch.matmul(to_torch_tensor(frac_positions), t_box)
-        # t_charges = to_torch_tensor(charges)
-
         self.placeholder_pairs = torch.ones((1, 2), device=env.DEVICE, dtype=torch.long)
         self.placeholder_ds = torch.ones((1), device=env.DEVICE, dtype=torch.float64)
         self.placeholder_buffer_scales = torch.zeros(
@@ -141,75 +134,49 @@ class DipoleChargeModifier(BaseModifier):
             nframes = coord.shape[0]
             natoms = coord.shape[1]
 
-            extended_coord, extended_charge, atomic_dipole = self.extend_system(
-                coord.reshape(nframes, natoms * 3),
+            input_box = box.reshape(nframes, 9)
+            input_box.requires_grad_(True)
+
+            detached_box = input_box.detach()
+            sfactor = torch.matmul(
+                torch.linalg.inv(detached_box.reshape(nframes, 3, 3)),
+                input_box.reshape(nframes, 3, 3),
+            )
+            input_coord = torch.matmul(coord, sfactor).reshape(nframes, -1)
+
+            extended_coord, extended_charge = self.extend_system(
+                input_coord,
                 atype,
-                box.reshape(nframes, 9),
+                input_box,
                 fparam,
                 aparam,
             )
 
             tot_e = []
-            all_f = []
-            all_v = []
-
             # add Ewald reciprocal correction
             for ii in range(nframes):
-                e, f, v = self.er_eval(extended_coord[ii], box[ii], extended_charge[ii])
-                tot_e.append(e.unsqueeze(0))
-                all_f.append(f.unsqueeze(0))
-                all_v.append(v.unsqueeze(0))
+                self.er(
+                    extended_coord[ii].reshape((-1, 3)),
+                    input_box[ii].reshape((3, 3)),
+                    self.placeholder_pairs,
+                    self.placeholder_ds,
+                    self.placeholder_buffer_scales,
+                    {"charge": extended_charge[ii].reshape((-1,))},
+                )
+                tot_e.append(self.er.reciprocal_energy.unsqueeze(0))
             # nframe,
             tot_e = torch.concat(tot_e, dim=0)
-            # nframe, nat + sel, 3
-            all_f = torch.concat(all_f, dim=0)
-            # nframe, 3,  3
-            all_v = torch.concat(all_v, dim=0)
-
-            # electrostatic forces on WC
-            # nframe, sel, 3
-            ext_f = all_f[:, natoms:, :]
-            # nframe, natoms
-            mask = make_mask(self.sel_type, atype)
-            # map ext_f back to nat length
-            ext_f_mapped = torch.zeros(
-                nframes, natoms, 3, device=coord.device, dtype=coord.dtype
-            )
-            for ii in range(nframes):
-                ext_f_mapped[ii][mask[ii]] = ext_f[ii]
-
-            corr_f = []
-            corr_v = []
-            for ii in range(nframes):
-                output = self.model(
-                    coord=coord[ii].reshape(1, -1),
-                    atype=atype.reshape(1, -1),
-                    box=box[ii].reshape(1, -1),
-                    do_atomic_virial=False,
-                    fparam=fparam[ii].reshape(1, -1) if fparam is not None else None,
-                    aparam=aparam[ii].reshape(1, -1) if aparam is not None else None,
-                    atomic_weight=ext_f_mapped[ii].reshape(1, -1),
-                )
-                corr_f.append(-output["force"])
-                corr_v.append(-output["virial"].reshape(1, -1, 9))
-            # nframes, natoms, nout, 3
-            corr_f = torch.concat(corr_f, dim=0)
-            # nframes, natoms, 3
-            corr_f = torch.sum(corr_f, dim=2)
-            # nframes, nout, 9
-            corr_v = torch.concat(corr_v, dim=0)
+            # nframe, nat * 3
+            tot_f = -calc_grads(tot_e, input_coord)
+            # nframe, nat, 3
+            tot_f = torch.reshape(tot_f, (nframes, natoms, 3))
             # nframe, 9
-            corr_v = torch.sum(corr_v, dim=1)
-            # print(corr_f.shape, corr_v.shape)
-
-            # compute f
-            # nframe, natoms, 3
-            tot_f = all_f[:, :natoms, :] + ext_f_mapped + corr_f
-            # compute v
-            ext_f3 = ext_f_mapped.permute(0, 2, 1)
-            # nframe, 3,  3
-            fd_corr_v = -torch.matmul(ext_f3, atomic_dipole)
-            tot_v = all_v + corr_v.reshape(-1, 3, 3) + fd_corr_v
+            tot_v = calc_grads(tot_e, input_box)
+            tot_v = torch.reshape(tot_v, (nframes, 3, 3))
+            # nframe, 3, 3
+            tot_v = -torch.matmul(
+                tot_v.transpose(2, 1), input_box.reshape(nframes, 3, 3)
+            )
 
             modifier_pred["energy"] = tot_e
             modifier_pred["force"] = tot_f
@@ -223,7 +190,7 @@ class DipoleChargeModifier(BaseModifier):
         box: torch.Tensor,
         fparam: torch.Tensor | None = None,
         aparam: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Extend the system with WFCC (Wannier Function Charge Centers).
 
         Parameters
@@ -242,18 +209,16 @@ class DipoleChargeModifier(BaseModifier):
         Returns
         -------
         tuple
-            (extended_coord, extended_charge, atomic_dipole)
+            (extended_coord, extended_charge)
             extended_coord : torch.Tensor
                 Extended coordinates with shape (nframes, (natoms + nsel) * 3)
             extended_charge : torch.Tensor
                 Extended charges with shape (nframes, natoms + nsel)
-            atomic_dipole : torch.Tensor
-                Dipole values with shape (nframes, natoms, 3)
         """
         nframes = coord.shape[0]
         mask = make_mask(self.sel_type, atype)
 
-        extended_coord, atomic_dipole = self.extend_system_coord(
+        extended_coord = self.extend_system_coord(
             coord,
             atype,
             box,
@@ -272,7 +237,7 @@ class DipoleChargeModifier(BaseModifier):
         wc_charge_selected = wc_charge[mask].reshape(nframes, -1)
         # Concatenate ion charges and wfcc charges
         extended_charge = torch.cat([ion_charge, wc_charge_selected], dim=1)
-        return extended_coord, extended_charge, atomic_dipole
+        return extended_coord, extended_charge
 
     def extend_system_coord(
         self,
@@ -281,7 +246,7 @@ class DipoleChargeModifier(BaseModifier):
         box: torch.Tensor,
         fparam: torch.Tensor | None = None,
         aparam: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         """Extend the system with WFCC (Wannier Function Charge Centers).
 
         This function calculates Wannier Function Charge Centers (WFCC) by adding dipole
@@ -303,13 +268,9 @@ class DipoleChargeModifier(BaseModifier):
 
         Returns
         -------
-        tuple
-            (all_coord, dipole) - extended coordinates including WFCC and the dipole values
-            all_coord : torch.Tensor
-                Extended coordinates with shape (nframes, (natoms + nsel) * 3)
-                where nsel is the number of selected atoms
-            dipole : torch.Tensor
-                Dipole values with shape (nframes, natoms * 3)
+        all_coord : torch.Tensor
+            Extended coordinates with shape (nframes, (natoms + nsel) * 3)
+            where nsel is the number of selected atoms
         """
         mask = make_mask(self.sel_type, atype)
 
@@ -340,7 +301,7 @@ class DipoleChargeModifier(BaseModifier):
         wfcc_coord = _wfcc_coord[mask.unsqueeze(-1).expand_as(_wfcc_coord)]
         wfcc_coord = wfcc_coord.reshape(nframes, -1)
         all_coord = torch.cat((coord, wfcc_coord), dim=1)
-        return all_coord, dipole
+        return all_coord
 
     def er_eval(
         self,

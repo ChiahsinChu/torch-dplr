@@ -68,7 +68,6 @@ class TestDipoleChargeModifier(unittest.TestCase):
             self.ewald_h,
             self.ewald_beta,
         )
-        print(self.dm_tf.get_sel_type())
 
     def test_jit(self):
         torch.jit.script(self.dm_pt)
