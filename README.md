@@ -18,13 +18,10 @@ TODO:
 Before installing torch-dplr, ensure you have the following custom deepmd-kit package:
 
 ```bash
-pip install "deepmd-kit[gpu,cu12,torch] @ git+https://github.com/ChiahsinChu/deepmd-kit.git@devel-pt-dplr"
+pip install "deepmd-kit[gpu,cu12,torch] @ git+https://github.com/ChiahsinChu/deepmd-kit.git@devel-modifier-plugin"
 ```
 
-This custom branch, developed on the basis of offical devel branch, includes features of:
-
-- supporting data modifier plugin for PyTorch backend;
-- allowing atomic_weight in dipole model, which is required to calculate force/virial correction in DPLR.
+This custom branch, developed on the basis of offical devel branch, supporting data modifier plugin for PyTorch backend.
 
 ### Standard Installation
 

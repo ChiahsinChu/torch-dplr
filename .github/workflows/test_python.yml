@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install "deepmd-kit[gpu,cu12,torch] @ git+https://github.com/ChiahsinChu/deepmd-kit.git@devel-pt-dplr"
+          pip install "deepmd-kit[gpu,cu12,torch] @ git+https://github.com/ChiahsinChu/deepmd-kit.git@devel-modifier-plugin"
           pip install .[test,torch_admp]  # Install package with test dependencies
 
       - name: Test with pytest
