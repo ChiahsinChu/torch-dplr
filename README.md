@@ -1,27 +1,24 @@
 # DPLR in PyTorch backend
 
-[![Test Python](https://github.com/ChiahsinChu/torch-dplr/actions/workflows/test_python.yml/badge.svg)](https://github.com/ChiahsinChu/torch-dplr/actions/workflows/test_python.yml) [![codecov](https://codecov.io/gh/chiahsinchu/torch-dplr/graph/badge.svg?token=PlTQbpLNLj)](https://codecov.io/gh/chiahsinchu/torch-dplr)
+> [!IMPORTANT]
+> This repository is migrated to the [official repository](https://github.com/deepmodeling/deepmd-kit/pull/5138).
+
+[![Test Python](https://github.com/ChiahsinChu/torch-dplr/actions/workflows/test_python.yml/badge.svg)](https://github.com/ChiahsinChu/torch-dplr/actions/workflows/test_python.yml) 
+[![codecov](https://codecov.io/gh/chiahsinchu/torch-dplr/graph/badge.svg?token=PlTQbpLNLj)](https://codecov.io/gh/chiahsinchu/torch-dplr)
 
 ## Introduction
 
 `torch-dplr` is a PyTorch implementation (training only yet) of the [DPLR (Deep potential long-range) model](https://docs.deepmodeling.com/projects/deepmd/en/master/model/dplr.html). This package is used as a plugin of DeepMD-kit package.
 
-TODO:
-
-- [ ] backend convert between tf and pt
-- [ ] lammps interface
-
 ## Installation
 
 ### Prerequisites
 
-Before installing torch-dplr, ensure you have the following custom deepmd-kit package:
+Before installing torch-dplr, ensure you have installed the deepmd-kit not earlier than commit dfeba54ffeea8f0d2ab840ebfbf79c2360afc3fc:
 
 ```bash
-pip install "deepmd-kit[gpu,cu12,torch] @ git+https://github.com/ChiahsinChu/deepmd-kit.git@devel-modifier-plugin"
+pip install "deepmd-kit[gpu,cu12,torch] @ git+https://github.com/ChiahsinChu/deepmd-kit.git"
 ```
-
-This custom branch, developed on the basis of offical devel branch, supporting data modifier plugin for PyTorch backend.
 
 ### Standard Installation
 

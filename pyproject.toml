@@ -25,7 +25,7 @@ Homepage = "https://github.com/ChiahsinChu/torch-dplr"
 
 [project.optional-dependencies]
 torch_admp = [
-    "torch_admp @ git+https://github.com/chiahsinchu/torch-admp.git@v1.1.0a",
+    "torch_admp==1.1.2",
 ]
 
 test = ["pytest", "pytest-cov", "ase"]
